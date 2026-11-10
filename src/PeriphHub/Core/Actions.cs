@@ -105,6 +105,17 @@ public static class ActionCatalog
         new("deck:next", "Next track (current app)", "PeriphHub"),
         new("deck:prev", "Previous track (current app)", "PeriphHub"),
         new("deck:taskmgr", "Task Manager", "PeriphHub"),
+
+        new("obs:scene", "OBS: switch to scene…", "OBS", NeedsArg: true, ArgHint: "Scene name exactly as in OBS"),
+        new("obs:record", "OBS: start / stop recording", "OBS"),
+        new("obs:pause", "OBS: pause / resume recording", "OBS"),
+        new("obs:stream", "OBS: start / stop streaming", "OBS"),
+        new("obs:replay", "OBS: save replay buffer", "OBS"),
+        new("obs:vcam", "OBS: virtual camera on / off", "OBS"),
+        new("obs:mute", "OBS: mute / unmute source…", "OBS", NeedsArg: true, ArgHint: "Audio source name, e.g. Mic/Aux or Desktop Audio"),
+
+        new("discord:mute", "Discord: mute / unmute", "Discord"),
+        new("discord:deafen", "Discord: deafen / undeafen", "Discord"),
     };
 
     public static ActionDef? Find(string id, IEnumerable<ActionDef>? extra = null) =>
@@ -126,7 +137,7 @@ public static class ActionRunner
         if (id is "default" or "disabled") return;
 
         if (id.StartsWith("device:")) { device?.DeviceAction(id, pressed); return; }
-        if (id.StartsWith("deck:")) { if (pressed) DeckActions.Run(spec); return; }
+        if (id.StartsWith("deck:") || id.StartsWith("obs:") || id.StartsWith("discord:")) { if (pressed) DeckActions.Run(spec); return; }
 
         switch (id)
         {

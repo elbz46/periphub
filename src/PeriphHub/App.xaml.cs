@@ -73,6 +73,8 @@ public partial class App : Application
             HotkeyChanged = () => Deck.RegisterHotkey(),
         };
         Hub.Add(deckPage);
+        Core.Deck.PhoneServer.Instance.Deck = Deck;
+        Core.Deck.PhoneServer.Instance.Apply();
         if (Core.Deck.DeckStore.Config.Visible) Deck.ShowDeck();
         if (e.Args.Contains("--demo"))
         {
@@ -120,6 +122,7 @@ public partial class App : Application
     {
         SettingsStore.Instance.SaveNow();
         _tray?.Dispose();
+        Core.Deck.PhoneServer.Instance.Stop();
         Hub.Dispose();
         Shutdown();
     }

@@ -34,6 +34,15 @@ public static class DeckActions
                 case "deck:next": _ = MediaController.Instance.NextAsync(); break;
                 case "deck:prev": _ = MediaController.Instance.PreviousAsync(); break;
                 case "deck:taskmgr": Input.Tap(Input.ParseCombo("Ctrl+Shift+Escape")); break;
+                case "obs:scene": _ = Obs.Instance.SendAsync("SetCurrentProgramScene", new { sceneName = spec.Arg ?? "" }); break;
+                case "obs:record": _ = Obs.Instance.SendAsync("ToggleRecord"); break;
+                case "obs:pause": _ = Obs.Instance.SendAsync("ToggleRecordPause"); break;
+                case "obs:stream": _ = Obs.Instance.SendAsync("ToggleStream"); break;
+                case "obs:replay": _ = Obs.Instance.SendAsync("SaveReplayBuffer"); break;
+                case "obs:vcam": _ = Obs.Instance.SendAsync("ToggleVirtualCam"); break;
+                case "obs:mute": _ = Obs.Instance.SendAsync("ToggleInputMute", new { inputName = spec.Arg ?? "" }); break;
+                case "discord:mute": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordMuteKey)); break;
+                case "discord:deafen": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordDeafenKey)); break;
                 case "deck:micmute":
                     Task.Run(() =>
                     {

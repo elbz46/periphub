@@ -23,6 +23,9 @@ public sealed class DeckButtonEditor : Window
         new("micmute", "Live: microphone (press = mute/unmute)"),
         new("clock", "Live: clock"),
         new("battery", "Live: device battery"),
+        new("folder", "Folder: opens its own page of buttons"),
+        new("timer", "Timer: countdown (press = start/pause, double-press = reset)"),
+        new("stopwatch", "Stopwatch (press = start/pause, double-press = reset)"),
     };
 
     private static readonly ActionDef None = new("default", "Nothing", "General");
@@ -37,7 +40,8 @@ public sealed class DeckButtonEditor : Window
     private readonly TextBlock _argHint = new() { FontSize = 12, Opacity = 0.7, TextWrapping = TextWrapping.Wrap };
     private readonly ObservableCollection<DeckStep> _steps = new();
     private readonly ListBox _stepList = new() { Height = 120 };
-    private readonly StackPanel _actionPanel = new(), _stepsPanel = new(), _devicePanel = new();
+    private readonly StackPanel _actionPanel = new(), _stepsPanel = new(), _devicePanel = new(), _folderPanel = new(), _timerPanel = new();
+    private readonly TextBox _folderName = new(), _minutes = new() { Width = 70 }, _seconds = new() { Width = 70 };
     private readonly Border _preview = new() { Width = 76, Height = 76, CornerRadius = new CornerRadius(11) };
     private readonly TextBlock _previewIcon = new() { FontSize = 28, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 12), FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI") };
     private readonly TextBlock _previewLabel = new() { FontSize = 10, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(3, 0, 3, 6), TextTrimming = TextTrimming.CharacterEllipsis };
@@ -116,6 +120,22 @@ public sealed class DeckButtonEditor : Window
         _devicePanel.Children.Add(Field("Device", _device));
         root.Children.Add(_devicePanel);
 
+        _folderPanel.Children.Add(Field("Folder page name (leave empty to use the label)", _folderName));
+        _folderPanel.Children.Add(new TextBlock
+        {
+            Text = "Press the folder on the deck to open it, then add buttons there. Its first button is always “Back”.",
+            Opacity = 0.7, TextWrapping = TextWrapping.Wrap, FontSize = 12,
+        });
+        root.Children.Add(_folderPanel);
+
+        var time = new StackPanel { Orientation = Orientation.Horizontal };
+        time.Children.Add(_minutes);
+        time.Children.Add(new TextBlock { Text = "min", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 14, 0) });
+        time.Children.Add(_seconds);
+        time.Children.Add(new TextBlock { Text = "sec", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) });
+        _timerPanel.Children.Add(Field("Countdown length", time));
+        root.Children.Add(_timerPanel);
+
         // ---- footer
         var footer = new DockPanel { Margin = new Thickness(0, 18, 0, 0), LastChildFill = false };
         var clear = Btn("Clear button", () => { Result = null; DialogResult = true; });
@@ -138,6 +158,9 @@ public sealed class DeckButtonEditor : Window
         _action.SelectedItem = Actions.FirstOrDefault(a => a.Id == b.Action.Id) ?? None;
         _arg.Text = b.Action.Arg ?? "";
         _device.SelectedItem = ((IEnumerable<ManagedDevice>)_device.ItemsSource).FirstOrDefault(d => d.Key == b.TileArg);
+        if (b.Tile == "folder") _folderName.Text = b.TileArg ?? "";
+        var secs = b.Tile == "timer" && int.TryParse(b.TileArg, out var ts) ? ts : 300;
+        _minutes.Text = (secs / 60).ToString(); _seconds.Text = (secs % 60).ToString();
 
         _kind.SelectionChanged += (_, _) => UpdateVisibility();
         _action.SelectionChanged += (_, _) => UpdateVisibility();
@@ -201,6 +224,8 @@ public sealed class DeckButtonEditor : Window
         _actionPanel.Visibility = kind is "" or "multi" ? Visibility.Visible : Visibility.Collapsed;
         _stepsPanel.Visibility = kind == "multi" ? Visibility.Visible : Visibility.Collapsed;
         _devicePanel.Visibility = kind == "battery" ? Visibility.Visible : Visibility.Collapsed;
+        _folderPanel.Visibility = kind == "folder" ? Visibility.Visible : Visibility.Collapsed;
+        _timerPanel.Visibility = kind == "timer" ? Visibility.Visible : Visibility.Collapsed;
         var showArg = act.NeedsArg;
         ((FrameworkElement)_arg.Parent).Visibility = showArg ? Visibility.Visible : Visibility.Collapsed;
         _argHint.Text = act.Id == "key" ? "Click the box and press the shortcut (e.g. Ctrl+Shift+M). Backspace clears it." : act.ArgHint ?? "";
@@ -269,7 +294,13 @@ public sealed class DeckButtonEditor : Window
             ImagePath = _imagePath,
             Color = _color.Text.Trim().Length == 7 ? _color.Text.Trim() : "#2B2F3A",
             Tile = kind is "" or "multi" ? "" : kind,
-            TileArg = kind == "battery" ? (_device.SelectedItem as ManagedDevice)?.Key : null,
+            TileArg = kind switch
+            {
+                "battery" => (_device.SelectedItem as ManagedDevice)?.Key,
+                "folder" => _folderName.Text.Trim().Length > 0 ? _folderName.Text.Trim() : (_label.Text.Trim().Length > 0 ? _label.Text.Trim() : "Folder"),
+                "timer" => Math.Max(1, (int.TryParse(_minutes.Text, out var m) ? m : 0) * 60 + (int.TryParse(_seconds.Text, out var sx) ? sx : 0)).ToString(),
+                _ => null,
+            },
             Action = kind == "" ? new ActionSpec { Id = act.Id, Arg = act.NeedsArg ? _arg.Text.Trim() : null } : new ActionSpec { Id = "default" },
             Steps = kind == "multi" ? _steps.ToList() : new List<DeckStep>(),
         };

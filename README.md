@@ -102,6 +102,20 @@ or hide it (default shortcut **Ctrl+Alt+D**, also in the tray menu).
   onto a visible screen when a monitor is unplugged
 - Right-click a button to edit, copy, paste or clear it; edit mode lets you
   drag buttons around
+- **Folders**: a button that opens its own sub-page (with a Back button)
+- **Timers and stopwatch**: press to start/pause, double-press to reset; the
+  timer flashes and plays a sound when it finishes
+- **Auto-hide**: park it against a screen edge and it slides away to a thin
+  strip, sliding back when the mouse touches it
+- **Phone deck**: Control deck › Phone deck › turn it on and scan the QR code.
+  Your phone (same Wi-Fi) shows the same buttons; the link carries a secret
+  pairing code. The installer allows it through the firewall on private
+  networks only.
+- **OBS** (OBS 28+, Tools › WebSocket Server Settings): switch scenes,
+  record/pause/stream, save replay, virtual camera, mute a source
+- **Discord**: mute/deafen by pressing Discord's own keybinds (set the same
+  keys in Discord › Settings › Keybinds; Discord does not let other apps
+  control voice directly)
 
 ## Honest limits
 

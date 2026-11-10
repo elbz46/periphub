@@ -263,3 +263,12 @@ public sealed class TextSetting : ValueSetting<string>
         : base(id, label, initial, apply) { DebounceMs = 600; }
     public string? Hint { get; init; }
 }
+
+/// <summary>A picture on a settings page (e.g. the phone pairing QR code).</summary>
+public sealed class ImageSetting : DeviceSetting
+{
+    public ImageSetting(string id, string label) : base(id, label) { Persist = false; }
+    private System.Windows.Media.ImageSource? _image;
+    public System.Windows.Media.ImageSource? Image { get => _image; set { Set(ref _image, value); Raise(nameof(HasImage)); } }
+    public bool HasImage => _image != null;
+}

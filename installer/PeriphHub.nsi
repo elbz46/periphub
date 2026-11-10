@@ -90,6 +90,10 @@ Section "${APP} (required)" SecMain
   WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair" 1
   WriteRegDWORD HKLM "${UNINST_KEY}" "EstimatedSize" 170000
 
+  ; Phone deck: allow incoming connections on home (private) networks only.
+  nsExec::Exec 'netsh advfirewall firewall delete rule name="PeriphHub phone deck"'
+  nsExec::Exec 'netsh advfirewall firewall add rule name="PeriphHub phone deck" dir=in action=allow program="$INSTDIR\${EXE}" enable=yes profile=private'
+
   CreateDirectory "$SMPROGRAMS\${APP}"
   CreateShortcut "$SMPROGRAMS\${APP}\${APP}.lnk" "$INSTDIR\${EXE}"
   CreateShortcut "$SMPROGRAMS\${APP}\Uninstall ${APP}.lnk" "$INSTDIR\Uninstall.exe"
@@ -118,6 +122,7 @@ Section "Uninstall"
   nsExec::Exec 'taskkill /IM ${EXE} /F'
   Sleep 500
   DeleteRegValue HKCU "${RUN_KEY}" "${APP}"
+  nsExec::Exec 'netsh advfirewall firewall delete rule name="PeriphHub phone deck"'
   Delete "$DESKTOP\${APP}.lnk"
   RMDir /r "$SMPROGRAMS\${APP}"
   RMDir /r "$INSTDIR"
