@@ -102,9 +102,9 @@ Needs the .NET 10 SDK and NSIS.
 ./build.ps1         # Windows
 ```
 
-Every push touching `periphhub/` builds the installer in GitHub Actions (artifact
-`PeriphHub-Setup`); pushing a tag `periphhub-v<version>` publishes it as a
-release.
+Every push to `main` builds the installer in GitHub Actions (artifact
+`PeriphHub-Setup`); pushing a tag `v<version>` (e.g. `v0.1.0`) publishes it as
+a release that friends can download.
 
 ## Layout
 
