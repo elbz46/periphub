@@ -1,5 +1,8 @@
 # PeriphHub
 
+**[⬇ Download PeriphHub for Windows](https://github.com/elbz46/periphub/releases/latest)** — open the
+latest release and run `PeriphHub-Setup-<version>.exe`.
+
 One Windows 10/11 app for all your peripherals — Logitech mice, keyboards and
 headsets, ASUS laptop keyboard lighting and performance modes, and any other
 Bluetooth/USB mouse, keyboard or headset — instead of Logitech Options+,
