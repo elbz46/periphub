@@ -5,8 +5,33 @@ public sealed class ConnectionsPage : ManagedDevice
 {
     public ConnectionsPage() : base("app:connections", "Connections", "", DeviceKind.Other)
     {
-        Transport = "Home Assistant · Spotify · ShareX";
+        Transport = "YouTube Music · Home Assistant · ShareX · Spotify";
         var c = Secrets.Config;
+
+        // ---- YouTube Music (installed app / PWA)
+        var ytStatus = Add("YouTube Music", new InfoSetting("ytm.status", "YouTube Music",
+            YouTubeMusic.FindWindow() != IntPtr.Zero ? "Open" : YouTubeMusic.FindShortcut() != null ? "Installed (not open)" : "Not found – install it from music.youtube.com (⊕ Install in the address bar)")
+        {
+            Description = "Play/pause, next, previous, cover art and seeking work through Windows media controls. " +
+                          "For like, dislike, shuffle, repeat and volume PeriphHub flicks to the YouTube Music window for a moment, " +
+                          "presses its shortcut and comes straight back (a short flicker is normal, more if it's minimised).",
+        });
+        Add("YouTube Music", new CommandSetting("ytm.cmds", "Try it",
+            new CommandItem("Open YouTube Music", () => { YouTubeMusic.Open(); return Task.CompletedTask; }),
+            new CommandItem("👍 Like current song", () => YouTubeMusic.RunAsync("like")),
+            new CommandItem("Check again", () =>
+            {
+                ytStatus.Text = YouTubeMusic.FindWindow() != IntPtr.Zero ? "Open" : YouTubeMusic.FindShortcut() != null ? "Installed (not open)" : "Not found";
+                return Task.CompletedTask;
+            })));
+        foreach (var (id, label, def) in YouTubeMusic.Commands)
+        {
+            Add("YouTube Music shortcuts", new TextSetting($"ytm.key.{id}", label, YouTubeMusic.KeyFor(id), v =>
+            {
+                c.YtmKeys[id] = v.Trim(); Secrets.Save();
+                return Task.CompletedTask;
+            }) { Persist = false, Hint = $"YouTube Music's key (default {def}). Press ? in YouTube Music to see its list." });
+        }
 
         // ---- Home Assistant
         var haStatus = Add("Home Assistant", new InfoSetting("ha.status", "Status", c.HaTokenProtected == null ? "Not set up" : "Token saved – press Test")

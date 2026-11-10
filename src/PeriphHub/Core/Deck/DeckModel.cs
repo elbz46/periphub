@@ -153,7 +153,7 @@ public static class DeckStore
         };
         for (int i = 0; i < b.Length; i++) main.Buttons[i] = b[i];
 
-        var media = new DeckPageModel { Name = "Media", App = "spotify.exe" };
+        var media = new DeckPageModel { Name = "Media" };
         var m = new[]
         {
             T("nowplaying", "Now playing", "#1E3A2B"), B("⏮", "Previous", "deck:prev"), B("⏯", "Play / Pause", "deck:playpause", color: "#1F4D36"),
@@ -174,7 +174,8 @@ public static class DeckStore
         for (int i = 0; i < t.Length; i++) tools.Buttons[i] = t[i];
         var pages = new List<DeckPageModel> { main, media, tools };
         AddV2(pages);
-        return new DeckConfig { Pages = pages, Version = 2 };
+        AddV3(pages);
+        return new DeckConfig { Pages = pages, Version = 3 };
     }
 
     private static DeckButton Folder(string name, string icon, string color) =>
@@ -237,12 +238,36 @@ public static class DeckStore
         Place(B("⬅", "Main page", "deck:page", "Main"), b => b.Action.Id == "deck:page" && b.Action.Arg == "Main");
     }
 
+    /// <summary>YouTube Music instead of Spotify: like/dislike/shuffle/repeat/open buttons.</summary>
+    private static void AddV3(List<DeckPageModel> pages)
+    {
+        foreach (var p in pages)
+            foreach (var kv in p.Buttons.Where(b => b.Value.Action.Id == "spotify:like").ToList())
+                p.Buttons[kv.Key] = B("👍", "Like", "ytm:like", color: "#5C1A16");
+
+        var media = pages.FirstOrDefault(p => p.Name == "Media" && !p.IsFolder);
+        if (media == null) return;
+        foreach (var kv in media.Buttons.Where(b => b.Value.Action.Id == "key" && b.Value.Action.Arg == "Ctrl+S").ToList())
+            media.Buttons[kv.Key] = B("🔀", "Shuffle", "ytm:shuffle");
+        void Place(DeckButton b)
+        {
+            if (media.Buttons.Values.Any(x => x.Action.Id == b.Action.Id)) return;
+            for (int i = 0; i < 15; i++) if (!media.Buttons.ContainsKey(i)) { media.Buttons[i] = b; return; }
+        }
+        Place(B("🎵", "YT Music", "ytm:open", color: "#7A1F1F"));
+        Place(B("👍", "Like", "ytm:like", color: "#5C1A16"));
+        Place(B("👎", "Dislike", "ytm:dislike"));
+        Place(B("🔁", "Repeat", "ytm:repeat"));
+        if (media.App == "spotify.exe") media.App = null;
+    }
+
     /// <summary>Brings decks made by older versions up to date without touching your own buttons.</summary>
     private static void Upgrade(DeckConfig c)
     {
-        if (c.Version >= 2) return;
-        AddV2(c.Pages);
-        c.Version = 2;
+        if (c.Version >= 3) return;
+        if (c.Version < 2) AddV2(c.Pages);
+        AddV3(c.Pages);
+        c.Version = 3;
         SettingsStore.Instance.SetApp("deck", c);
     }
 }

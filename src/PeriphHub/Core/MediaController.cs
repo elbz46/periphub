@@ -104,6 +104,7 @@ public sealed class MediaController : Observable
         if (a.Contains("applemusic") || a.Contains("itunes")) return "Apple Music";
         if (a.Contains("vlc")) return "VLC";
         if (a.Contains("discord")) return "Discord";
+        if (a.Contains("_crx_")) return Integrations.YouTubeMusic.FindWindow() != IntPtr.Zero ? "YouTube Music" : "Web app";
         var name = aumid.Split('!', '\\', '/').Last();
         if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name[..^4];
         return name.Length == 0 ? "App" : char.ToUpperInvariant(name[0]) + name[1..];

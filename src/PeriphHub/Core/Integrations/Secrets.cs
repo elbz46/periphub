@@ -15,6 +15,9 @@ public sealed class IntegrationsConfig
 
     public string ShareXPath { get; set; } = "";
 
+    /// <summary>YouTube Music shortcuts (override if YouTube Music changes them; press ? in YouTube Music to see them).</summary>
+    public Dictionary<string, string> YtmKeys { get; set; } = new();
+
     public bool HeadsetAutoSwitch { get; set; } = true;
     public bool HeadsetSwitchBack { get; set; } = true;
     public bool HeadsetPauseOnDisconnect { get; set; } = true;

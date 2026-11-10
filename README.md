@@ -145,6 +145,10 @@ estimate of the time left.
 - **Home Assistant** (long-lived token, works with a self-signed certificate):
   toggle/on/off entities, call any service, live entity tiles on the deck
   and phone (lights, switches, sensors, climate…)
+- **YouTube Music** (installed app / PWA): play/pause/next/previous/seek and
+  cover art through Windows media controls; like, dislike, shuffle, repeat,
+  volume and search by briefly bringing the YouTube Music window forward and
+  pressing its own shortcuts (configurable), then returning to your app
 - **Spotify** (your own free developer app, signed in once): like the current
   song, add it to a playlist, play a playlist, move playback to a device
 - **ShareX**: region/window/full-screen screenshots, scrolling capture, video

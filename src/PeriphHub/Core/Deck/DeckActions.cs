@@ -87,6 +87,7 @@ public static class DeckActions
                 case "ha:service": _ = Integrations.HomeAssistant.Instance.ServiceAsync(spec.Arg ?? ""); break;
                 case "sharex:custom": Integrations.ShareX.Run(spec.Arg ?? ""); break;
                 case var sx when sx.StartsWith("sharex:"): Integrations.ShareX.Run(sx[7..]); break;
+                case var ytm when ytm.StartsWith("ytm:"): _ = Integrations.YouTubeMusic.RunAsync(ytm[4..]); break;
                 case var sp when sp.StartsWith("spotify:"): _ = Integrations.Spotify.Instance.Run(sp, spec.Arg); break;
                 case "discord:mute": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordMuteKey)); break;
                 case "discord:deafen": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordDeafenKey)); break;

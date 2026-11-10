@@ -134,6 +134,16 @@ public static class ActionCatalog
         new("ha:off", "Home Assistant: turn off…", "Home Assistant", NeedsArg: true, ArgHint: "Entity, e.g. light.room"),
         new("ha:service", "Home Assistant: call service…", "Home Assistant", NeedsArg: true, ArgHint: "domain.service entity {json}, e.g. light.turn_on light.desk {\"brightness\":80}"),
 
+        new("ytm:open", "YouTube Music: open", "YouTube Music"),
+        new("ytm:like", "YouTube Music: like", "YouTube Music"),
+        new("ytm:dislike", "YouTube Music: dislike", "YouTube Music"),
+        new("ytm:shuffle", "YouTube Music: shuffle", "YouTube Music"),
+        new("ytm:repeat", "YouTube Music: repeat", "YouTube Music"),
+        new("ytm:volup", "YouTube Music: volume up", "YouTube Music"),
+        new("ytm:voldown", "YouTube Music: volume down", "YouTube Music"),
+        new("ytm:mute", "YouTube Music: mute", "YouTube Music"),
+        new("ytm:search", "YouTube Music: search", "YouTube Music"),
+
         new("spotify:like", "Spotify: like / unlike current song", "Spotify"),
         new("spotify:addto", "Spotify: add current song to playlist…", "Spotify", NeedsArg: true, ArgHint: "Playlist link (Share › Copy link)"),
         new("spotify:playlist", "Spotify: play playlist…", "Spotify", NeedsArg: true, ArgHint: "Playlist link"),
@@ -164,7 +174,7 @@ public static class ActionRunner
         if (id is "default" or "disabled") return;
 
         if (id.StartsWith("device:")) { device?.DeviceAction(id, pressed); return; }
-        if (id.Split(':')[0] is "deck" or "obs" or "discord" or "scene" or "sound" or "laptop" or "ha" or "spotify" or "sharex" || id is "mouse:dpi" or "media:pausecurrent")
+        if (id.Split(':')[0] is "deck" or "obs" or "discord" or "scene" or "sound" or "laptop" or "ha" or "spotify" or "sharex" or "ytm" || id is "mouse:dpi" or "media:pausecurrent")
         {
             if (pressed) DeckActions.Run(spec);
             return;
