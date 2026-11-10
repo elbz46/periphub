@@ -15,7 +15,7 @@
     <AssemblyName>PeriphHub</AssemblyName>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.5.0</Version>
+    <Version>0.5.1</Version>
     <Product>PeriphHub</Product>
     <Description>One app for all your mice, keyboards, headsets and laptop lighting.</Description>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

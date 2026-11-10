@@ -19,18 +19,22 @@
   header button { background:#262a33; color:var(--fg); border:0; border-radius:10px; width:44px; height:38px; font-size:18px; }
   header .name { flex:1; text-align:center; font-weight:600; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   header .pos { color:var(--muted); font-weight:400; font-size:13px; margin-left:6px; }
-  #grid { flex:1; display:grid; gap:8px; min-height:0; overflow-y:auto; align-content:start; }
-  #grid.fill { align-content:stretch; overflow:hidden; }
-  #grid:not(.fill) .cell { aspect-ratio:1; }
-  .cell { position:relative; border-radius:16px; background:var(--cell); display:flex; flex-direction:column;
+  #grid { flex:1; display:grid; gap:var(--gap, 8px); min-height:0; overflow:hidden;
+    justify-content:center; align-content:center; --s:80px; }
+  @media (orientation: landscape) and (max-height: 500px) {
+    header { padding-bottom:6px; }
+    header button { height:32px; width:40px; }
+    header .name { font-size:14px; }
+  }
+  .cell { position:relative; border-radius:calc(var(--s) * .18); background:var(--cell); display:flex; flex-direction:column;
     align-items:center; justify-content:center; overflow:hidden; user-select:none; -webkit-user-select:none;
     touch-action:none; transition:transform .06s ease, filter .06s ease; min-height:0; }
   .cell.empty { background:#1c1f26; }
   .cell.down { transform:scale(.93); filter:brightness(1.25); }
   .cell img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.6; pointer-events:none; }
-  .cell .icon { position:relative; font-size:clamp(18px, 7vmin, 44px); line-height:1.1; text-align:center; padding:0 4px; }
-  .cell .icon.small { font-size:clamp(14px, 5vmin, 30px); font-variant-numeric:tabular-nums; font-weight:600; }
-  .cell .label { position:relative; font-size:clamp(10px, 2.8vmin, 14px); margin-top:4px; padding:0 6px; max-width:100%;
+  .cell .icon { position:relative; font-size:calc(var(--s) * .36); line-height:1.1; text-align:center; padding:0 4px; }
+  .cell .icon.small { font-size:calc(var(--s) * .24); font-variant-numeric:tabular-nums; font-weight:600; }
+  .cell .label { position:relative; font-size:clamp(9px, calc(var(--s) * .14), 16px); margin-top:4px; padding:0 6px; max-width:100%;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#e8eaf0; }
   #status { color:var(--muted); font-size:12px; text-align:center; padding-top:8px; min-height:20px; }
 </style>
@@ -56,17 +60,31 @@ function press(i, down) { api(`/api/press?i=${i}&d=${down ? 1 : 0}`, "POST").cat
 document.getElementById("prev").onclick = () => api("/api/nav?dir=prev", "POST").then(refresh);
 document.getElementById("next").onclick = () => api("/api/nav?dir=next", "POST").then(refresh);
 
-function portrait() { return window.innerHeight > window.innerWidth; }
+/* Works in portrait and landscape, on phones and tablets: find the number of columns that gives the
+   biggest square buttons with every button visible, then size the grid exactly. */
+function layout(n) {
+  const W = grid.clientWidth, H = grid.clientHeight;
+  const gap = Math.max(5, Math.min(10, Math.round(Math.min(W, H) / 60)));
+  let best = { cols: 1, size: 0 };
+  for (let c = 1; c <= n; c++) {
+    const r = Math.ceil(n / c);
+    const size = Math.floor(Math.min((W - gap * (c - 1)) / c, (H - gap * (r - 1)) / r));
+    if (size > best.size) best = { cols: c, size };
+  }
+  const size = Math.max(36, Math.min(best.size, 220));
+  grid.style.setProperty("--gap", gap + "px");
+  grid.style.setProperty("--s", size + "px");
+  grid.style.gridTemplateColumns = `repeat(${best.cols}, ${size}px)`;
+  grid.style.gridAutoRows = size + "px";
+  grid.style.gridTemplateRows = "";
+}
+
 function build(s) {
   grid.innerHTML = ""; cells = {};
-  // Portrait phones: square buttons, at most 4 per row (scrolls if needed). Landscape: the PC's grid.
-  const p = portrait() && s.cols > 4;
-  const cols = p ? Math.min(4, s.cols) : s.cols;
-  grid.classList.toggle("fill", !p);
-  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  grid.style.gridTemplateRows = p ? "" : `repeat(${s.rows}, 1fr)`;
+  // Keep the deck's order; drop trailing empty slots so the buttons can be as large as possible.
   let last = s.buttons.length - 1;
-  if (p) while (last > 0 && s.buttons[last].empty) last--;
+  while (last > 0 && s.buttons[last].empty) last--;
+  layout(last + 1);
   for (const b of s.buttons.slice(0, last + 1)) {
     const el = document.createElement("div");
     el.className = "cell";
@@ -87,7 +105,7 @@ function build(s) {
 function render(s) {
   document.getElementById("page").textContent = (s.folder ? "📁 " : "") + s.page;
   document.getElementById("pos").textContent = !s.folder && s.pages > 1 ? `${s.pos}/${s.pages}` : "";
-  const key = `${s.rows}x${s.cols}|${s.page}|${portrait()}|${s.buttons.filter(b => !b.empty).length}`;
+  const key = `${s.rows}x${s.cols}|${s.page}|${window.innerWidth}x${window.innerHeight}|${s.buttons.map(b => b.empty ? 0 : 1).join("")}`;
   if (key !== layoutKey) { layoutKey = key; build(s); }
   for (const b of s.buttons) {
     const el = cells[b.i]; if (!el) continue;
@@ -116,7 +134,11 @@ function refresh() {
 }
 refresh();
 setInterval(refresh, 1000);
-window.addEventListener("resize", () => { layoutKey = ""; refresh(); });
+let resizeTimer;
+function relayout() { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { layoutKey = ""; refresh(); }, 120); }
+window.addEventListener("resize", relayout);
+window.addEventListener("orientationchange", relayout);
+if (screen.orientation) screen.orientation.addEventListener("change", relayout);
 </script>
 </body>
 </html>
