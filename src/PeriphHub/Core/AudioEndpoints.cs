@@ -141,6 +141,12 @@ public static class AudioEndpoints
 
     [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PROPVARIANT pv);
 
+    public static string? DefaultInputId()
+    {
+        try { return Enumerator().GetDefaultAudioEndpoint(EDataFlow.Capture, ERole.Communications, out var d) == 0 && d.GetId(out var id) == 0 ? id : null; }
+        catch { return null; }
+    }
+
     public static string? DefaultOutputId()
     {
         try { return Enumerator().GetDefaultAudioEndpoint(EDataFlow.Render, ERole.Multimedia, out var d) == 0 && d.GetId(out var id) == 0 ? id : null; }

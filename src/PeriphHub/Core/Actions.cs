@@ -89,6 +89,22 @@ public static class ActionCatalog
         new("zoom:in", "Zoom in", "Browser", "Ctrl+Plus"),
         new("zoom:out", "Zoom out", "Browser", "Ctrl+Minus"),
         new("zoom:reset", "Reset zoom", "Browser", "Ctrl+0"),
+
+        new("deck:toggle", "Show / hide the control deck", "PeriphHub"),
+        new("deck:page", "Go to deck page…", "PeriphHub", NeedsArg: true, ArgHint: "Page name"),
+        new("deck:nextpage", "Next deck page", "PeriphHub"),
+        new("deck:prevpage", "Previous deck page", "PeriphHub"),
+        new("deck:micmute", "Mute / unmute microphone", "PeriphHub"),
+        new("deck:outmute", "Mute / unmute sound", "PeriphHub"),
+        new("deck:volup", "Volume +5%", "PeriphHub"),
+        new("deck:voldown", "Volume −5%", "PeriphHub"),
+        new("deck:output", "Switch sound output to…", "PeriphHub", NeedsArg: true, ArgHint: "Part of the device name, e.g. G321 or Speakers"),
+        new("deck:outputcycle", "Cycle sound output (speakers ↔ headset)", "PeriphHub"),
+        new("deck:sound", "Play a sound file (soundboard)…", "PeriphHub", NeedsArg: true, ArgHint: @"C:\path\sound.mp3 or .wav"),
+        new("deck:playpause", "Play / Pause (current app)", "PeriphHub"),
+        new("deck:next", "Next track (current app)", "PeriphHub"),
+        new("deck:prev", "Previous track (current app)", "PeriphHub"),
+        new("deck:taskmgr", "Task Manager", "PeriphHub"),
     };
 
     public static ActionDef? Find(string id, IEnumerable<ActionDef>? extra = null) =>
@@ -110,6 +126,7 @@ public static class ActionRunner
         if (id is "default" or "disabled") return;
 
         if (id.StartsWith("device:")) { device?.DeviceAction(id, pressed); return; }
+        if (id.StartsWith("deck:")) { if (pressed) DeckActions.Run(spec); return; }
 
         switch (id)
         {

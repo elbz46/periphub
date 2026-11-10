@@ -78,6 +78,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (DeviceList.SelectedItem is ManagedDevice d) Selected = d;
     }
 
+    public void SelectKey(string key)
+    {
+        if (key == "app") { OnShowSettings(this, new RoutedEventArgs()); return; }
+        var d = Devices.FirstOrDefault(x => x.Key == key);
+        if (d != null) { DeviceList.SelectedItem = d; Selected = d; }
+    }
+
     private void OnShowSettings(object sender, RoutedEventArgs e)
     {
         DeviceList.SelectedItem = null;

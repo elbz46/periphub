@@ -77,7 +77,7 @@ public sealed class DeviceHub : IDisposable
             {
                 if (Devices.Any(d => d.Key == device.Key)) return;
                 // keep a stable, friendly order: laptop, mice, keyboards, headsets, others
-                int Rank(ManagedDevice d) => d is MusicPage ? 5 : d.Kind switch
+                int Rank(ManagedDevice d) => d is MusicPage ? 5 : d is Deck.DeckSettingsPage ? 6 : d.Kind switch
                 {
                     DeviceKind.Laptop => 0, DeviceKind.Mouse => 1, DeviceKind.Keyboard => 2,
                     DeviceKind.Headset => 3, _ => 4,

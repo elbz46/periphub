@@ -16,6 +16,15 @@ public partial class App : Application
     public static DeviceHub Hub { get; } = new();
     public static KeyRemapDevice? Keys { get; private set; }
     public static AppSettingsPage? AppPage { get; private set; }
+    public static DeckWindow? Deck { get; private set; }
+
+    /// <summary>Opens the main window on a page (device key or "app").</summary>
+    public void ShowPage(string key)
+    {
+        if (MainWindow is not PeriphHub.MainWindow w) return;
+        w.ShowAndActivate();
+        w.SelectKey(key);
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -52,6 +61,19 @@ public partial class App : Application
         else _ = MediaController.Instance.StartAsync();
         _ = Keys.ApplySavedAsync();
         Keys.Start();
+
+        // On-screen control deck
+        Deck = new DeckWindow();
+        DeckActions.Host = Deck;
+        var deckPage = new Core.Deck.DeckSettingsPage
+        {
+            ShowDeck = () => Deck.ShowDeck(),
+            HideDeck = () => Deck.HideDeck(),
+            EditDeck = () => { Deck.ShowDeck(); Deck.SetEdit(true); },
+            HotkeyChanged = () => Deck.RegisterHotkey(),
+        };
+        Hub.Add(deckPage);
+        if (Core.Deck.DeckStore.Config.Visible) Deck.ShowDeck();
         if (e.Args.Contains("--demo"))
         {
             Hub.Add(new DemoDevice("MX Master 2S (demo)", DeviceKind.Mouse));

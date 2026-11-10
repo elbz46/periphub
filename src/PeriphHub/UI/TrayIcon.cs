@@ -20,6 +20,8 @@ public sealed class TrayIcon : IDisposable
         };
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open PeriphHub", null, (_, _) => _window.ShowAndActivate());
+        menu.Items.Add("Show / hide control deck", null, (_, _) => App.Deck?.Toggle());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Play / Pause", null, (_, _) => _ = MediaController.Instance.PlayPauseAsync());
         menu.Items.Add("Next track", null, (_, _) => _ = MediaController.Instance.NextAsync());
         menu.Items.Add("Previous track", null, (_, _) => _ = MediaController.Instance.PreviousAsync());

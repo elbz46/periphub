@@ -74,6 +74,35 @@ brightness.
   click *Add key*, press the key, choose what it does — keystrokes, text
   macros, launch apps/sites, media keys — with per-application profiles.
 
+### Music & sound
+
+- Now playing (title, artist, cover art) for any app that uses Windows media
+  controls: Spotify, YouTube in the browser, Media Player, Apple Music, VLC…
+- Play/pause, next, previous, seek, shuffle, repeat; pick which app to control
+- Volume mixer: default output, master volume, per-app volume and mute
+- Headset pages: volume, mute, microphone level/mute, make it the default
+  speaker or microphone
+
+### Control deck (on-screen button panel)
+
+A small panel of buttons that stays on top of everything until you minimise
+or hide it (default shortcut **Ctrl+Alt+D**, also in the tray menu).
+
+- Any number of rows and columns, button size, see-through level, labels
+- Buttons with text, emoji or a picture and a colour; actions include
+  keystrokes, text, programs/websites, media, Windows shortcuts, volume, mic
+  mute, switching sound output and a soundboard (play a sound file)
+- Multi-step buttons: run several actions in a row with pauses
+- Live buttons: now playing, volume (scroll to change), microphone, clock,
+  device battery
+- Pages, optionally switched automatically by the app you are using
+- Never takes focus, so shortcuts go to the app you are using; held buttons
+  keep keys held (push-to-talk)
+- Remembers its position separately for every screen setup and comes back
+  onto a visible screen when a monitor is unplugged
+- Right-click a button to edit, copy, paste or clear it; edit mode lets you
+  drag buttons around
+
 ## Honest limits
 
 - **MSI lighting**: MSI has not published the protocol for its peripherals'
