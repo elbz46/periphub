@@ -21,16 +21,47 @@ public abstract class ManagedDevice : Observable, IDisposable
     public string Name { get => _name; protected set => Set(ref _name, value); }
 
     private string _transport = "";
-    public string Transport { get => _transport; set => Set(ref _transport, value); }
+    public string Transport { get => _transport; set { if (Set(ref _transport, value)) { RaiseStatus(); Raise(nameof(ConnectionLine)); } } }
 
     private bool _online = true;
-    public bool IsOnline { get => _online; set { if (Set(ref _online, value)) Raise(nameof(StatusLine)); } }
+    public bool IsOnline { get => _online; set { if (Set(ref _online, value)) { RaiseStatus(); Raise(nameof(ConnectionLine)); Raise(nameof(HasBattery)); } } }
 
     private int? _battery;
-    public int? BatteryPercent { get => _battery; set { if (Set(ref _battery, value)) Raise(nameof(StatusLine)); } }
+    private bool _lowWarned;
+    public int? BatteryPercent
+    {
+        get => _battery;
+        set
+        {
+            if (!Set(ref _battery, value)) return;
+            RaiseBattery();
+            if (value is int b && b <= 15 && !Charging && !_lowWarned) { _lowWarned = true; Toast.Show($"{Name} battery is low ({b}%)"); }
+            if (value is int b2 && b2 > 25) _lowWarned = false;
+        }
+    }
 
     private bool _charging;
-    public bool Charging { get => _charging; set { if (Set(ref _charging, value)) Raise(nameof(StatusLine)); } }
+    public bool Charging { get => _charging; set { if (Set(ref _charging, value)) RaiseBattery(); } }
+
+    private void RaiseStatus() { Raise(nameof(StatusLine)); Raise(nameof(HeaderLine)); }
+
+    /// <summary>"Vendor · connection · battery" for the page header.</summary>
+    public string HeaderLine => string.Join(" · ", new[] { Vendor, StatusLine }.Where(x => !string.IsNullOrEmpty(x)));
+
+    private void RaiseBattery()
+    {
+        RaiseStatus(); Raise(nameof(BatteryText)); Raise(nameof(BatteryGlyph)); Raise(nameof(HasBattery));
+    }
+
+    public bool HasBattery => _battery != null && IsOnline;
+    public string BatteryText => _battery is int b ? $"{b}%" : "";
+    /// <summary>Segoe Fluent battery icon for the level (Battery0..Battery10, or the charging set).</summary>
+    public string BatteryGlyph => _battery is int b
+        ? ((char)((Charging ? 0xE85B : 0xE850) + Math.Clamp((b + 5) / 10, 0, 10))).ToString()
+        : "";
+
+    /// <summary>How the device is connected, for the sidebar (battery is shown separately there).</summary>
+    public string ConnectionLine => !IsOnline ? "Disconnected" : Transport;
 
     public string StatusLine
     {
@@ -93,6 +124,19 @@ public abstract class ManagedDevice : Observable, IDisposable
 
     /// <summary>Periodic refresh (battery etc.).</summary>
     public virtual Task PollAsync() => Task.CompletedTask;
+
+    /// <summary>Windows sound controls (volume, mute, mic, default device) for headsets.</summary>
+    protected AudioControls? Audio { get; private set; }
+
+    protected void EnableAudio()
+    {
+        if (Audio != null) return;
+        Audio = new AudioControls(() => Name);
+        foreach (var s in Audio.Settings) Add("Sound", s);
+        _ = Audio.RefreshAsync();
+    }
+
+    public Task RefreshAudioAsync() => Audio?.RefreshAsync() ?? Task.CompletedTask;
 
     public virtual void Dispose() { }
 }

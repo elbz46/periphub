@@ -87,6 +87,22 @@ brightness.
 - The installer is not code-signed yet, so Windows SmartScreen shows
   “Windows protected your PC” — click **More info › Run anyway**.
 
+## Helping add MSI keyboard lighting
+
+MSI does not publish how its keyboards' lighting is controlled, so support has
+to be learned from one recording of MSI Center talking to the keyboard:
+
+1. Plug the keyboard's USB dongle (or cable) into the PC.
+2. Install [Wireshark](https://www.wireshark.org/download.html) and tick
+   **Install USBPcap** during setup, then restart the PC.
+3. Open Wireshark, double-click the **USBPcap** interface (try each one until
+   typing on the keyboard makes lines appear).
+4. In MSI Center, set the keyboard to **static red**, wait two seconds, then
+   **static green**, wait, then **static blue**.
+5. Stop the capture in Wireshark and save it (**File › Save As**, `.pcapng`).
+6. Send the file. It only contains USB traffic; still, avoid typing passwords
+   while it records.
+
 ## Finding your laptop model
 
 PeriphHub shows it on the laptop's page. Without the app: **Settings › System

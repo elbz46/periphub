@@ -20,6 +20,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         set
         {
             _selected = value;
+            _ = value?.RefreshAudioAsync();
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
             PageScroller?.ScrollToTop();
             if (EmptyText != null)

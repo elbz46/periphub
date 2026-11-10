@@ -154,6 +154,9 @@ public sealed class LogitechDevice : ManagedDevice, IDeviceActionHandler
         }
         if (d.Has(Feature.Equalizer)) await BuildEqualizerAsync();
 
+        // ---- Windows sound controls (volume, mute, mic, default device)
+        if (Kind == DeviceKind.Headset) EnableAudio();
+
         // ---- Lighting
         if (d.Has(Feature.ColorLedEffects)) await BuildLightingAsync();
 

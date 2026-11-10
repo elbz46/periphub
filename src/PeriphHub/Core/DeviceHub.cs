@@ -26,7 +26,7 @@ public sealed class DeviceHub : IDisposable
     {
         DeviceList.Local.Changed += (_, _) => QueueRescan();
         QueueRescan(100);
-        _poll = new Timer(async _ => await PollAll(), null, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(60));
+        _poll = new Timer(async _ => await PollAll(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30));
     }
 
     public void QueueRescan(int delayMs = 1200)
@@ -60,7 +60,7 @@ public sealed class DeviceHub : IDisposable
     {
         foreach (var d in Devices.ToList())
         {
-            try { await d.PollAsync(); } catch (Exception ex) { Log.Warn($"{d.Name}: poll failed: {ex.Message}"); }
+            try { await d.PollAsync(); await d.RefreshAudioAsync(); } catch (Exception ex) { Log.Warn($"{d.Name}: poll failed: {ex.Message}"); }
         }
     }
 
