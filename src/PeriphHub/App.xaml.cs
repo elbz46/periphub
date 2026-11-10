@@ -74,6 +74,11 @@ public partial class App : Application
         };
         Hub.Add(deckPage);
         Core.Deck.PhoneServer.Instance.Deck = Deck;
+        Hub.Add(new Core.Scenes.ScenesPage());
+        Hub.Add(new BatteryPage());
+        Hub.Add(new Core.Integrations.ConnectionsPage());
+        Core.Scenes.ScenesPage.EditRequested += m => { window.ShowAndActivate(); window.EditScene(m); };
+        Core.Scenes.SceneEngine.Instance.Start();
         Core.Deck.PhoneServer.Instance.Apply();
         if (Core.Deck.DeckStore.Config.Visible) Deck.ShowDeck();
         if (e.Args.Contains("--demo"))
@@ -123,6 +128,7 @@ public partial class App : Application
         SettingsStore.Instance.SaveNow();
         _tray?.Dispose();
         Core.Deck.PhoneServer.Instance.Stop();
+        BatteryHistory.Save();
         Hub.Dispose();
         Shutdown();
     }

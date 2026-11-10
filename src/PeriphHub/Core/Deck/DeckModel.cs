@@ -61,6 +61,9 @@ public sealed class DeckConfig
     /// <summary>Slide away at the screen edge, leaving a thin strip; comes back when the mouse touches it.</summary>
     public bool AutoHide { get; set; }
 
+    /// <summary>Layout version, used to add new starter buttons to existing decks once.</summary>
+    public int Version { get; set; }
+
     // Phone deck (Wi-Fi)
     public bool PhoneEnabled { get; set; }
     public int PhonePort { get; set; } = 8770;
@@ -90,6 +93,7 @@ public static class DeckStore
             _config = SettingsStore.Instance.GetApp<DeckConfig>("deck");
             _config ??= Defaults();
             if (_config.Pages.Count == 0) _config.Pages = Defaults().Pages;
+            Upgrade(_config);
             return _config;
         }
     }
@@ -166,22 +170,79 @@ public static class DeckStore
             new DeckButton { Tile = "timer", TileArg = "1500", Label = "Focus 25", Color = "#3F2A5C" },
             new DeckButton { Tile = "stopwatch", Label = "Stopwatch", Color = "#1E3A5F" },
             B("🎙", "Discord mute", "discord:mute", color: "#3B3F8F"), B("🎧", "Discord deafen", "discord:deafen", color: "#3B3F8F"),
-            new DeckButton { Tile = "folder", TileArg = "OBS", Icon = "🎬", Label = "OBS", Color = "#5B3A12" },
-            B("🔊", "Speakers ↔ headset", "deck:outputcycle"), T("micmute", "Mic"), T("clock", "Clock"),
-            B("⬅", "Main page", "deck:page", "Main"),
         };
         for (int i = 0; i < t.Length; i++) tools.Buttons[i] = t[i];
+        var pages = new List<DeckPageModel> { main, media, tools };
+        AddV2(pages);
+        return new DeckConfig { Pages = pages, Version = 2 };
+    }
 
-        var obs = new DeckPageModel { Name = "OBS", IsFolder = true };
-        var o = new[]
+    private static DeckButton Folder(string name, string icon, string color) =>
+        new() { Tile = "folder", TileArg = name, Icon = icon, Label = name, Color = color };
+
+    /// <summary>ShareX, Scenes and Stats folders + Spotify like on the Tools page (also used to upgrade older decks).</summary>
+    private static void AddV2(List<DeckPageModel> pages)
+    {
+        var tools = pages.FirstOrDefault(p => p.Name == "Tools" && !p.IsFolder);
+        if (tools == null) { tools = new DeckPageModel { Name = "Tools" }; pages.Add(tools); }
+
+        if (!pages.Any(p => p.IsFolder && p.Name == "ShareX"))
         {
-            B("⏺", "Record", "obs:record", color: "#7A1F1F"), B("⏸", "Pause rec", "obs:pause"), B("📡", "Stream", "obs:stream", color: "#7A1F1F"),
-            B("💾", "Save replay", "obs:replay"), B("📷", "Virtual cam", "obs:vcam"),
-            B("🎤", "Mute mic", "obs:mute", "Mic/Aux"), B("🔈", "Mute desktop", "obs:mute", "Desktop Audio"),
-            B("🎮", "Scene: Game", "obs:scene", "Game"), B("💬", "Scene: Chat", "obs:scene", "Chat"),
-        };
-        for (int i = 0; i < o.Length; i++) obs.Buttons[i + 1] = o[i];
+            var sx = new DeckPageModel { Name = "ShareX", IsFolder = true };
+            var x = new[]
+            {
+                B("✂", "Region", "sharex:RectangleRegion", color: "#1E3A5F"), B("🖥", "Full screen", "sharex:PrintScreen"), B("🪟", "Window", "sharex:ActiveWindow"),
+                B("📜", "Scrolling", "sharex:ScrollingCapture"), B("🎥", "Record video", "sharex:ScreenRecorder", color: "#7A1F1F"),
+                B("🎞", "Record GIF", "sharex:ScreenRecorderGIF", color: "#7A1F1F"), B("⏹", "Stop rec", "sharex:StopScreenRecording", color: "#5C1A16"),
+                B("🔤", "Grab text", "sharex:OCR"), B("🎨", "Colour pick", "sharex:ScreenColorPicker"), B("📂", "Screenshots", "sharex:OpenScreenshotsFolder"),
+            };
+            for (int i = 0; i < x.Length; i++) sx.Buttons[i + 1] = x[i];
+            pages.Add(sx);
+        }
+        if (!pages.Any(p => p.IsFolder && p.Name == "Scenes"))
+        {
+            var sc = new DeckPageModel { Name = "Scenes", IsFolder = true };
+            var x = new[]
+            {
+                B("🎮", "Gaming", "scene:run", "Gaming", "#7A1F1F"), B("💼", "Work", "scene:run", "Work", "#1E3A5F"),
+                B("🌙", "Night", "scene:run", "Night", "#3F2A5C"), B("🚪", "Away", "scene:run", "Away", "#3A3F4C"),
+            };
+            for (int i = 0; i < x.Length; i++) sc.Buttons[i + 1] = x[i];
+            pages.Add(sc);
+        }
+        if (!pages.Any(p => p.IsFolder && p.Name == "Stats"))
+        {
+            var st = new DeckPageModel { Name = "Stats", IsFolder = true };
+            var kinds = new[] { "cputemp", "gputemp", "cpufan", "gpufan", "cpu", "ram", "battery" };
+            for (int i = 0; i < kinds.Length; i++) st.Buttons[i + 1] = new DeckButton { Tile = "stat", TileArg = kinds[i], Color = "#23262E" };
+            pages.Add(st);
+        }
 
-        return new DeckConfig { Pages = new() { main, media, tools, obs } };
+        // OBS isn't used: swap an OBS folder button on Tools for ShareX.
+        foreach (var kv in tools.Buttons.Where(b => b.Value.Tile == "folder" && b.Value.TileArg == "OBS").ToList())
+            tools.Buttons[kv.Key] = Folder("ShareX", "📸", "#1E3A5F");
+
+        void Place(DeckButton b, Func<DeckButton, bool> exists)
+        {
+            if (tools.Buttons.Values.Any(exists)) return;
+            for (int i = 0; i < 15; i++) if (!tools.Buttons.ContainsKey(i)) { tools.Buttons[i] = b; return; }
+        }
+        Place(Folder("ShareX", "📸", "#1E3A5F"), b => b.Tile == "folder" && b.TileArg == "ShareX");
+        Place(Folder("Scenes", "✨", "#5B3A12"), b => b.Tile == "folder" && b.TileArg == "Scenes");
+        Place(Folder("Stats", "🌡", "#0F5F5F"), b => b.Tile == "folder" && b.TileArg == "Stats");
+        Place(B("♥", "Like song", "spotify:like", color: "#1F4D36"), b => b.Action.Id == "spotify:like");
+        Place(B("🔊", "Speakers ↔ headset", "deck:outputcycle"), b => b.Action.Id == "deck:outputcycle");
+        Place(T("micmute", "Mic"), b => b.Tile == "micmute");
+        Place(T("clock", "Clock"), b => b.Tile == "clock");
+        Place(B("⬅", "Main page", "deck:page", "Main"), b => b.Action.Id == "deck:page" && b.Action.Arg == "Main");
+    }
+
+    /// <summary>Brings decks made by older versions up to date without touching your own buttons.</summary>
+    private static void Upgrade(DeckConfig c)
+    {
+        if (c.Version >= 2) return;
+        AddV2(c.Pages);
+        c.Version = 2;
+        SettingsStore.Instance.SetApp("deck", c);
     }
 }

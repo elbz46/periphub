@@ -158,6 +158,19 @@ public sealed class AsusLaptopDevice : ManagedDevice
         }
     }
 
+    /// <summary>Latest fan / temperature readings (-1 = not reported), for deck tiles.</summary>
+    public (int cpuFan, int gpuFan, int cpuTemp, int gpuTemp) ReadSensors()
+    {
+        if (_acpi == null) return (-1, -1, -1, -1);
+        try
+        {
+            int cf = _acpi.Get(AtkAcpi.CpuFan), gf = _acpi.Get(AtkAcpi.GpuFan);
+            int ct = _acpi.Get(AtkAcpi.CpuTemp), gt = _acpi.Get(AtkAcpi.GpuTemp);
+            return (cf >= 0 ? cf * 100 : -1, gf >= 0 ? gf * 100 : -1, ct is > 0 and < 120 ? ct : -1, gt is > 0 and < 120 ? gt : -1);
+        }
+        catch { return (-1, -1, -1, -1); }
+    }
+
     public override Task PollAsync() => Task.Run(() =>
     {
         if (_fans == null || _acpi == null) return;

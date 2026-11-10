@@ -49,3 +49,10 @@ public sealed class MonoForDiag : IValueConverter
         new FontFamily(value is string s && s.StartsWith("diag") ? "Cascadia Mono, Consolas" : "Segoe UI Variable Text, Segoe UI");
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
 }
+
+public sealed class PercentWidth : IValueConverter
+{
+    public static PercentWidth Instance { get; } = new();
+    public object Convert(object? value, Type t, object? p, CultureInfo c) => value is int v ? Math.Clamp(v, 0, 100) * 1.4 : 0.0;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
+}

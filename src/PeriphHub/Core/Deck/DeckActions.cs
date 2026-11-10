@@ -18,6 +18,29 @@ public static class DeckActions
     public static IDeckHost? Host { get; set; }
     private static readonly List<MediaPlayer> Playing = new();
 
+    /// <summary>Pastes text instantly via the clipboard, then puts the old clipboard back.</summary>
+    private static void Paste(string text)
+    {
+        System.Windows.IDataObject? old = null;
+        try { old = System.Windows.Clipboard.GetDataObject(); } catch { }
+        try { System.Windows.Clipboard.SetText(text.Replace("\r\n", "\n").Replace("\\n", "\n").Replace("\n", Environment.NewLine)); }
+        catch { Input.TypeText(text); return; }
+        Input.Tap(Input.ParseCombo("Ctrl+V"));
+        var d = System.Windows.Application.Current.Dispatcher;
+        _ = Task.Delay(600).ContinueWith(_ => d.BeginInvoke(() =>
+        {
+            try { if (old != null) System.Windows.Clipboard.SetDataObject(old, true); } catch { }
+        }));
+    }
+
+    private static void SwitchSound(string? want, bool capture) => Task.Run(() =>
+    {
+        want = (want ?? "").Trim();
+        var e = AudioEndpoints.All().FirstOrDefault(x => x.IsCapture == capture && x.Name.Contains(want, StringComparison.OrdinalIgnoreCase));
+        if (e == null) { Toast.Show($"No {(capture ? "microphone" : "sound output")} matching “{want}”"); return; }
+        AudioEndpoints.SetDefault(e.Id);
+    });
+
     public static void Run(ActionSpec spec)
     {
         var d = System.Windows.Application.Current?.Dispatcher;
@@ -41,6 +64,30 @@ public static class DeckActions
                 case "obs:replay": _ = Obs.Instance.SendAsync("SaveReplayBuffer"); break;
                 case "obs:vcam": _ = Obs.Instance.SendAsync("ToggleVirtualCam"); break;
                 case "obs:mute": _ = Obs.Instance.SendAsync("ToggleInputMute", new { inputName = spec.Arg ?? "" }); break;
+                case "scene:run": _ = Scenes.SceneEngine.Instance.RunByNameAsync(spec.Arg ?? ""); break;
+                case "deck:paste": Ui(() => Paste(spec.Arg ?? "")); break;
+                case "sound:output": SwitchSound(spec.Arg, capture: false); break;
+                case "sound:input": SwitchSound(spec.Arg, capture: true); break;
+                case "sound:volume":
+                    Task.Run(() => { if (AudioEndpoints.DefaultOutputId() is { } id && int.TryParse(spec.Arg, out var v)) AudioEndpoints.SetVolume(id, v); });
+                    break;
+                case "sound:micmute":
+                    Task.Run(() => { if (AudioEndpoints.DefaultInputId() is { } id) AudioEndpoints.SetMute(id, (spec.Arg ?? "").Trim().ToLowerInvariant() is "on" or "true" or "1" or "mute"); });
+                    break;
+                case "media:pausecurrent": if (MediaController.Instance.IsPlaying) _ = MediaController.Instance.PlayPauseAsync(); break;
+                case "laptop:mode": Ui(() => DeviceControl.Set<Drivers.Asus.AsusLaptopDevice>("perf.mode", spec.Arg)); break;
+                case "laptop:kbeffect": Ui(() => DeviceControl.Set<Drivers.Asus.AsusLaptopDevice>("kb.mode", spec.Arg)); break;
+                case "laptop:kbcolor": Ui(() => DeviceControl.Set<Drivers.Asus.AsusLaptopDevice>("kb.color", spec.Arg)); break;
+                case "laptop:kbbright": Ui(() => DeviceControl.Set<Drivers.Asus.AsusLaptopDevice>("kb.brightness", spec.Arg)); break;
+                case "laptop:chargelimit": Ui(() => DeviceControl.Set<Drivers.Asus.AsusLaptopDevice>("battery.limit", spec.Arg)); break;
+                case "mouse:dpi": Ui(() => DeviceControl.Set<Drivers.Logitech.LogitechDevice>("dpi", spec.Arg)); break;
+                case "ha:toggle": _ = Integrations.HomeAssistant.Instance.ToggleAsync((spec.Arg ?? "").Trim()); break;
+                case "ha:on": _ = Integrations.HomeAssistant.Instance.TurnAsync((spec.Arg ?? "").Trim(), true); break;
+                case "ha:off": _ = Integrations.HomeAssistant.Instance.TurnAsync((spec.Arg ?? "").Trim(), false); break;
+                case "ha:service": _ = Integrations.HomeAssistant.Instance.ServiceAsync(spec.Arg ?? ""); break;
+                case "sharex:custom": Integrations.ShareX.Run(spec.Arg ?? ""); break;
+                case var sx when sx.StartsWith("sharex:"): Integrations.ShareX.Run(sx[7..]); break;
+                case var sp when sp.StartsWith("spotify:"): _ = Integrations.Spotify.Instance.Run(sp, spec.Arg); break;
                 case "discord:mute": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordMuteKey)); break;
                 case "discord:deafen": Input.Tap(Input.ParseCombo(Deck.DeckStore.Config.DiscordDeafenKey)); break;
                 case "deck:micmute":

@@ -114,9 +114,36 @@ public static class ActionCatalog
         new("obs:vcam", "OBS: virtual camera on / off", "OBS"),
         new("obs:mute", "OBS: mute / unmute source…", "OBS", NeedsArg: true, ArgHint: "Audio source name, e.g. Mic/Aux or Desktop Audio"),
 
+        new("scene:run", "Run scene…", "Scenes", NeedsArg: true, ArgHint: "Scene name, e.g. Gaming"),
+        new("deck:paste", "Paste a snippet…", "PeriphHub", NeedsArg: true, ArgHint: "Text to paste instantly (can be several lines)"),
+        new("sound:output", "Sound output: switch to…", "Sound", NeedsArg: true, ArgHint: "Part of the device name, e.g. G321 or Speakers"),
+        new("sound:input", "Microphone: switch to…", "Sound", NeedsArg: true, ArgHint: "Part of the device name, e.g. G321 or Microphone Array"),
+        new("sound:volume", "Set volume to…", "Sound", NeedsArg: true, ArgHint: "0–100"),
+        new("sound:micmute", "Microphone mute on / off…", "Sound", NeedsArg: true, ArgHint: "on or off"),
+        new("media:pausecurrent", "Pause music (if playing)", "Media"),
+
+        new("laptop:mode", "Laptop: operating mode…", "Laptop", NeedsArg: true, ArgHint: "Silent, Performance or Turbo"),
+        new("laptop:kbeffect", "Laptop keyboard: effect…", "Laptop", NeedsArg: true, ArgHint: "Static, Breathing, Colour cycle or Strobing"),
+        new("laptop:kbcolor", "Laptop keyboard: colour…", "Laptop", NeedsArg: true, ArgHint: "#RRGGBB, e.g. #FF0000"),
+        new("laptop:kbbright", "Laptop keyboard: brightness…", "Laptop", NeedsArg: true, ArgHint: "Off, Low, Medium or High"),
+        new("laptop:chargelimit", "Laptop: stop charging at…", "Laptop", NeedsArg: true, ArgHint: "40–100 (%)"),
+        new("mouse:dpi", "Mouse: set DPI…", "Mouse", NeedsArg: true, ArgHint: "e.g. 1600"),
+
+        new("ha:toggle", "Home Assistant: toggle…", "Home Assistant", NeedsArg: true, ArgHint: "Entity, e.g. light.desk"),
+        new("ha:on", "Home Assistant: turn on…", "Home Assistant", NeedsArg: true, ArgHint: "Entity, e.g. switch.pc_lights"),
+        new("ha:off", "Home Assistant: turn off…", "Home Assistant", NeedsArg: true, ArgHint: "Entity, e.g. light.room"),
+        new("ha:service", "Home Assistant: call service…", "Home Assistant", NeedsArg: true, ArgHint: "domain.service entity {json}, e.g. light.turn_on light.desk {\"brightness\":80}"),
+
+        new("spotify:like", "Spotify: like / unlike current song", "Spotify"),
+        new("spotify:addto", "Spotify: add current song to playlist…", "Spotify", NeedsArg: true, ArgHint: "Playlist link (Share › Copy link)"),
+        new("spotify:playlist", "Spotify: play playlist…", "Spotify", NeedsArg: true, ArgHint: "Playlist link"),
+        new("spotify:device", "Spotify: play on device…", "Spotify", NeedsArg: true, ArgHint: "Part of the device name, e.g. Echo or phone"),
+
         new("discord:mute", "Discord: mute / unmute", "Discord"),
         new("discord:deafen", "Discord: deafen / undeafen", "Discord"),
-    };
+    }.Concat(Integrations.ShareX.Tasks.Select(t => new ActionDef("sharex:" + t.task, "ShareX: " + t.label, "ShareX")))
+     .Append(new ActionDef("sharex:custom", "ShareX: other task / workflow…", "ShareX", NeedsArg: true, ArgHint: "Task name (e.g. RectangleRegion) or workflow:My workflow"))
+     .ToArray();
 
     public static ActionDef? Find(string id, IEnumerable<ActionDef>? extra = null) =>
         (extra ?? Enumerable.Empty<ActionDef>()).Concat(Common).FirstOrDefault(a => a.Id == id);
@@ -137,7 +164,11 @@ public static class ActionRunner
         if (id is "default" or "disabled") return;
 
         if (id.StartsWith("device:")) { device?.DeviceAction(id, pressed); return; }
-        if (id.StartsWith("deck:") || id.StartsWith("obs:") || id.StartsWith("discord:")) { if (pressed) DeckActions.Run(spec); return; }
+        if (id.Split(':')[0] is "deck" or "obs" or "discord" or "scene" or "sound" or "laptop" or "ha" or "spotify" or "sharex" || id is "mouse:dpi" or "media:pausecurrent")
+        {
+            if (pressed) DeckActions.Run(spec);
+            return;
+        }
 
         switch (id)
         {

@@ -93,6 +93,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void OnRescan(object sender, RoutedEventArgs e) => App.Hub.QueueRescan(50);
 
+    private void OnSceneRun(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: Core.Scenes.SceneRow r }) _ = Core.Scenes.SceneEngine.Instance.RunAsync(r.Model, "run by hand");
+    }
+
+    private void OnSceneEdit(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: Core.Scenes.SceneRow r }) EditScene(r.Model);
+    }
+
+    private void OnSceneDelete(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: Core.Scenes.SceneRow r }) return;
+        if (MessageBox.Show(this, $"Delete the scene “{r.Name}”?", "Scenes", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        Core.Scenes.SceneStore.Scenes.Remove(r.Model);
+        Core.Scenes.SceneStore.Save();
+    }
+
+    public void EditScene(Core.Scenes.SceneModel? model)
+    {
+        var dlg = new UI.SceneEditor(model) { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.Result == null) return;
+        var list = Core.Scenes.SceneStore.Scenes;
+        var i = model == null ? -1 : list.IndexOf(model);
+        if (i >= 0) list[i] = dlg.Result; else list.Add(dlg.Result);
+        Core.Scenes.SceneStore.Save();
+    }
+
     private async void OnMedia(object sender, RoutedEventArgs e)
     {
         var m = MediaController.Instance;

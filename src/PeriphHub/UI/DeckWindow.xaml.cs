@@ -609,6 +609,8 @@ public partial class DeckWindow : Window, IDeckHost, IPhoneDeck
                 "micmute" => new ActionSpec { Id = "deck:micmute" },
                 "volume" => new ActionSpec { Id = "deck:outmute" },
                 "battery" when b.TileArg != null => new ActionSpec { Id = "app:show", Arg = b.TileArg },
+                "ha" when b.TileArg != null => new ActionSpec { Id = "ha:toggle", Arg = b.TileArg },
+                "stat" => new ActionSpec { Id = "app:show", Arg = "app:batteries" },
                 _ => spec,
             };
         }
@@ -724,6 +726,7 @@ public partial class DeckWindow : Window, IDeckHost, IPhoneDeck
         if (!IsVisible) return;
         var page = DeckStore.CurrentPage;
         bool needAudio = page.Buttons.Values.Any(b => b.Tile is "micmute" or "volume");
+        if (page.Buttons.Values.Any(b => b.Tile == "stat")) _ = Core.Integrations.SystemStats.CpuPercent; // keep the CPU sampler warm
         if (needAudio && _tickCount % 2 == 0)
         {
             Task.Run(() =>
@@ -751,6 +754,23 @@ public partial class DeckWindow : Window, IDeckHost, IPhoneDeck
                 var dev = App.Hub.Devices.FirstOrDefault(d => d.Key == b.TileArg);
                 return (dev?.BatteryPercent is int p ? $"{p}%" : "—", L(dev?.Name ?? "Battery"), b.Color);
             case "folder": return (b.Icon.Length > 0 ? b.Icon : "📁", L("Folder"), b.Color);
+            case "stat":
+            {
+                var (value, label) = Core.Integrations.SystemStats.Describe(b.TileArg);
+                return (value, L(label), b.Color);
+            }
+            case "ha":
+            {
+                var id = b.TileArg ?? "";
+                var st = Core.Integrations.HomeAssistant.Instance.Get(id);
+                var domain = id.Split('.')[0];
+                bool on = st?.State is "on" or "open" or "playing" or "unlocked" or "home" or "heat" or "cool";
+                string icon = b.Icon.Length > 0 && !Core.Integrations.HomeAssistant.Toggleable.Contains(domain) ? b.Icon : Core.Integrations.HomeAssistant.IconFor(st, id);
+                if (domain is "sensor" or "input_number" or "number" or "weather" || (st != null && st.Unit != null))
+                    icon = st == null ? "…" : $"{st.State}{st.Unit}";
+                else if (icon.Length == 0) icon = st?.State ?? "…";
+                return (icon, L(st?.Name ?? id), on ? "#7A5A12" : b.Color);
+            }
             case "timer":
             {
                 _timers.TryGetValue(TimerKey(index), out var t);
@@ -799,7 +819,7 @@ public partial class DeckWindow : Window, IDeckHost, IPhoneDeck
             texts[0].FontSize = cell.Width * (icon.Length >= 3 && !icon.Any(char.IsSurrogate) ? (icon.Length > 5 ? 0.2 : 0.26) : 0.38);
             texts[1].Text = label;
             if (b.Tile == "nowplaying" && art != null) art.Source = media.Art;
-            if (b.Tile is "micmute" or "timer" && !cell.IsMouseOver) cell.Background = Brush(color);
+            if (b.Tile is "micmute" or "timer" or "ha" && !cell.IsMouseOver) cell.Background = Brush(color);
         }
     }
 }

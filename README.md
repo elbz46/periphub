@@ -117,6 +117,42 @@ or hide it (default shortcut **Ctrl+Alt+D**, also in the tray menu).
   keys in Discord › Settings › Keybinds; Discord does not let other apps
   control voice directly)
 
+### Scenes & automation
+
+One switch for your whole setup: fan mode, laptop keyboard lighting, sound
+output and microphone, volume, mouse DPI, deck page, Home Assistant, Spotify,
+ShareX, keystrokes… Run a scene by hand, from a deck/phone/mouse button
+(“Run scene…”), or automatically when:
+
+- a program starts (and another scene when it closes) – e.g. a game
+- a second screen is connected / it's back to the laptop screen only
+- the charger is plugged in / the laptop runs on battery
+- a headset connects / disconnects, or PeriphHub starts
+
+Starter scenes: Gaming, Work, Night, Away, Docked, Laptop only, On battery,
+Plugged in (the automatic ones start switched off).
+
+Headsets: Windows sound and mic move to the headset when it connects and back
+when it disconnects; music pauses when it disconnects.
+
+### Batteries
+
+Every battery (laptop, mouse, headset, keyboard) with a 24-hour graph and an
+estimate of the time left.
+
+### Connections
+
+- **Home Assistant** (long-lived token, works with a self-signed certificate):
+  toggle/on/off entities, call any service, live entity tiles on the deck
+  and phone (lights, switches, sensors, climate…)
+- **Spotify** (your own free developer app, signed in once): like the current
+  song, add it to a playlist, play a playlist, move playback to a device
+- **ShareX**: region/window/full-screen screenshots, scrolling capture, video
+  and GIF recording, stop/pause recording, OCR, colour picker, open folder,
+  or any task/workflow
+- Deck **stats** tiles: CPU/GPU temperature, fan speeds, CPU and RAM use,
+  laptop battery; **snippets** paste saved text instantly
+
 ## Honest limits
 
 - **MSI lighting**: MSI has not published the protocol for its peripherals'

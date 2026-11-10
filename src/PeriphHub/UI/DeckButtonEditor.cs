@@ -23,6 +23,8 @@ public sealed class DeckButtonEditor : Window
         new("micmute", "Live: microphone (press = mute/unmute)"),
         new("clock", "Live: clock"),
         new("battery", "Live: device battery"),
+        new("ha", "Live: Home Assistant entity (press = toggle)"),
+        new("stat", "Live: PC stat (temperature, fans, CPU, RAM, battery)"),
         new("folder", "Folder: opens its own page of buttons"),
         new("timer", "Timer: countdown (press = start/pause, double-press = reset)"),
         new("stopwatch", "Stopwatch (press = start/pause, double-press = reset)"),
@@ -41,7 +43,9 @@ public sealed class DeckButtonEditor : Window
     private readonly ObservableCollection<DeckStep> _steps = new();
     private readonly ListBox _stepList = new() { Height = 120 };
     private readonly StackPanel _actionPanel = new(), _stepsPanel = new(), _devicePanel = new(), _folderPanel = new(), _timerPanel = new();
-    private readonly TextBox _folderName = new(), _minutes = new() { Width = 70 }, _seconds = new() { Width = 70 };
+    private readonly TextBox _folderName = new(), _minutes = new() { Width = 70 }, _seconds = new() { Width = 70 }, _haEntity = new();
+    private readonly StackPanel _haPanel = new(), _statPanel = new();
+    private readonly ComboBox _stat = new(), _haPick = new() { IsEditable = false }, _argPick = new() { MinWidth = 200 };
     private readonly Border _preview = new() { Width = 76, Height = 76, CornerRadius = new CornerRadius(11) };
     private readonly TextBlock _previewIcon = new() { FontSize = 28, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 12), FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI") };
     private readonly TextBlock _previewLabel = new() { FontSize = 10, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(3, 0, 3, 6), TextTrimming = TextTrimming.CharacterEllipsis };
@@ -97,6 +101,8 @@ public sealed class DeckButtonEditor : Window
         _action.ItemTemplate = ActionTemplate();
         _actionPanel.Children.Add(Field("Action", _action));
         _actionPanel.Children.Add(Field("Details", _arg));
+        _actionPanel.Children.Add(Field("Suggestions", _argPick));
+        _argPick.SelectionChanged += (_, _) => { if (_argPick.SelectedItem is string v) _arg.Text = v; };
         _actionPanel.Children.Add(_argHint);
         _arg.PreviewKeyDown += CaptureKeystroke;
         root.Children.Add(_actionPanel);
@@ -136,6 +142,14 @@ public sealed class DeckButtonEditor : Window
         _timerPanel.Children.Add(Field("Countdown length", time));
         root.Children.Add(_timerPanel);
 
+        _haPanel.Children.Add(Field("Entity (e.g. light.desk, switch.monitor_plug, sensor.living_room_temperature)", _haEntity));
+        _haPanel.Children.Add(Field("…or pick one", _haPick));
+        _haPick.SelectionChanged += (_, _) => { if (_haPick.SelectedItem is string id) _haEntity.Text = id.Split(' ')[0]; };
+        root.Children.Add(_haPanel);
+        _stat.ItemsSource = Core.Integrations.SystemStats.Kinds.Select(k => k.label).ToList();
+        _statPanel.Children.Add(Field("Show", _stat));
+        root.Children.Add(_statPanel);
+
         // ---- footer
         var footer = new DockPanel { Margin = new Thickness(0, 18, 0, 0), LastChildFill = false };
         var clear = Btn("Clear button", () => { Result = null; DialogResult = true; });
@@ -159,6 +173,10 @@ public sealed class DeckButtonEditor : Window
         _arg.Text = b.Action.Arg ?? "";
         _device.SelectedItem = ((IEnumerable<ManagedDevice>)_device.ItemsSource).FirstOrDefault(d => d.Key == b.TileArg);
         if (b.Tile == "folder") _folderName.Text = b.TileArg ?? "";
+        if (b.Tile == "ha") _haEntity.Text = b.TileArg ?? "";
+        var statIdx = Array.FindIndex(Core.Integrations.SystemStats.Kinds, k => k.id == b.TileArg);
+        _stat.SelectedIndex = statIdx < 0 ? 0 : statIdx;
+        _ = LoadHaEntitiesAsync();
         var secs = b.Tile == "timer" && int.TryParse(b.TileArg, out var ts) ? ts : 300;
         _minutes.Text = (secs / 60).ToString(); _seconds.Text = (secs % 60).ToString();
 
@@ -226,10 +244,18 @@ public sealed class DeckButtonEditor : Window
         _devicePanel.Visibility = kind == "battery" ? Visibility.Visible : Visibility.Collapsed;
         _folderPanel.Visibility = kind == "folder" ? Visibility.Visible : Visibility.Collapsed;
         _timerPanel.Visibility = kind == "timer" ? Visibility.Visible : Visibility.Collapsed;
+        _haPanel.Visibility = kind == "ha" ? Visibility.Visible : Visibility.Collapsed;
+        _statPanel.Visibility = kind == "stat" ? Visibility.Visible : Visibility.Collapsed;
         var showArg = act.NeedsArg;
         ((FrameworkElement)_arg.Parent).Visibility = showArg ? Visibility.Visible : Visibility.Collapsed;
         _argHint.Text = act.Id == "key" ? "Click the box and press the shortcut (e.g. Ctrl+Shift+M). Backspace clears it." : act.ArgHint ?? "";
         _argHint.Visibility = showArg ? Visibility.Visible : Visibility.Collapsed;
+        var sugg = ArgSuggestions.For(act.Id, _haEntities);
+        _argPick.ItemsSource = sugg;
+        ((FrameworkElement)_argPick.Parent).Visibility = showArg && sugg.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _arg.AcceptsReturn = act.Id is "deck:paste" or "text";
+        _arg.MinHeight = _arg.AcceptsReturn ? 70 : 0;
+        _arg.TextWrapping = _arg.AcceptsReturn ? TextWrapping.Wrap : TextWrapping.NoWrap;
     }
 
     private void UpdatePreview()
@@ -243,6 +269,21 @@ public sealed class DeckButtonEditor : Window
             try { _preview.Background = new ImageBrush(new System.Windows.Media.Imaging.BitmapImage(new Uri(_imagePath))) { Stretch = Stretch.UniformToFill }; }
             catch { }
         }
+    }
+
+    private List<string> _haEntities = new();
+
+    private async Task LoadHaEntitiesAsync()
+    {
+        if (Core.Integrations.Secrets.Config.HaTokenProtected == null) return;
+        try
+        {
+            var all = await Core.Integrations.HomeAssistant.Instance.AllAsync();
+            _haEntities = all.Select(e => e.EntityId).ToList();
+            _haPick.ItemsSource = all.Select(e => $"{e.EntityId}   ({e.Name})").ToList();
+            UpdateVisibility();
+        }
+        catch { /* HA unreachable: typing the entity still works */ }
     }
 
     private void PickImage()
@@ -298,12 +339,15 @@ public sealed class DeckButtonEditor : Window
             {
                 "battery" => (_device.SelectedItem as ManagedDevice)?.Key,
                 "folder" => _folderName.Text.Trim().Length > 0 ? _folderName.Text.Trim() : (_label.Text.Trim().Length > 0 ? _label.Text.Trim() : "Folder"),
+                "ha" => _haEntity.Text.Trim(),
+                "stat" => Core.Integrations.SystemStats.Kinds[Math.Max(0, _stat.SelectedIndex)].id,
                 "timer" => Math.Max(1, (int.TryParse(_minutes.Text, out var m) ? m : 0) * 60 + (int.TryParse(_seconds.Text, out var sx) ? sx : 0)).ToString(),
                 _ => null,
             },
             Action = kind == "" ? new ActionSpec { Id = act.Id, Arg = act.NeedsArg ? _arg.Text.Trim() : null } : new ActionSpec { Id = "default" },
             Steps = kind == "multi" ? _steps.ToList() : new List<DeckStep>(),
         };
+        if (kind == "ha" && string.IsNullOrWhiteSpace(Result.TileArg)) { MessageBox.Show(this, "Enter a Home Assistant entity.", "Deck button"); return; }
         if (kind == "battery" && Result.TileArg == null) { MessageBox.Show(this, "Pick a device for the battery tile.", "Deck button"); return; }
         if (Result.IsEmpty && kind == "") Result = null;
         DialogResult = true;

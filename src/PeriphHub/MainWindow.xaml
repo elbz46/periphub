@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:core="clr-namespace:PeriphHub.Core"
+        xmlns:scenes="clr-namespace:PeriphHub.Core.Scenes"
         xmlns:ui="clr-namespace:PeriphHub.UI"
         Title="PeriphHub" Height="820" Width="1180" MinWidth="820" MinHeight="560"
         WindowStartupLocation="CenterScreen" Icon="Assets/app.ico">
@@ -156,6 +157,72 @@
                     <Image Source="{Binding Image}" Width="180" Height="180" RenderOptions.BitmapScalingMode="NearestNeighbor" />
                 </Border>
             </Grid>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type scenes:SceneListSetting}">
+            <StackPanel Margin="0,8">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SettingLabel}" />
+                <ItemsControl ItemsSource="{Binding Rows}" Margin="0,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type scenes:SceneRow}">
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Icon}" FontSize="22" VerticalAlignment="Center" FontFamily="Segoe UI Emoji" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" />
+                                    <TextBlock FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis">
+                                        <Run Text="{Binding TriggerText, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding StepsText, Mode=OneWay}" />
+                                    </TextBlock>
+                                </StackPanel>
+                                <CheckBox Grid.Column="2" IsChecked="{Binding Enabled}" Content="On" VerticalAlignment="Center" Margin="10,0"
+                                          Visibility="{Binding IsAuto, Converter={StaticResource BoolToVis}}" ToolTip="Run automatically" />
+                                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                    <Button Content="Run" Click="OnSceneRun" Tag="{Binding}" Margin="0,0,6,0" Padding="12,4" />
+                                    <Button Content="Edit" Click="OnSceneEdit" Tag="{Binding}" Margin="0,0,6,0" Padding="12,4" />
+                                    <Button Content="Delete" Click="OnSceneDelete" Tag="{Binding}" Padding="12,4" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type core:BatteryOverviewSetting}">
+            <StackPanel Margin="0,8">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SettingLabel}" />
+                <TextBlock Text="No battery-powered devices are connected." Opacity="0.7" Margin="0,8,0,0"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+                <ItemsControl ItemsSource="{Binding Rows}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type core:BatteryRow}">
+                            <Grid Margin="0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" /><ColumnDefinition Width="220" /><ColumnDefinition Width="160" /><ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="12" Opacity="0.7"><Run Text="{Binding Status, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding TimeLeft, Mode=OneWay}" /></TextBlock>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="10,0">
+                                    <TextBlock Text="{Binding Percent, StringFormat={}{0}%}" FontSize="18" FontWeight="SemiBold" />
+                                    <Grid Height="6" Margin="0,4,0,0">
+                                        <Border Background="#40808080" CornerRadius="3" />
+                                        <Border Background="{Binding BarBrush}" CornerRadius="3" HorizontalAlignment="Left"
+                                                Width="{Binding Percent, Converter={x:Static ui:PercentWidth.Instance}}" />
+                                    </Grid>
+                                </StackPanel>
+                                <Border Grid.Column="3" Height="44" Width="244" HorizontalAlignment="Left" BorderBrush="#30808080" BorderThickness="0,0,0,1">
+                                    <Polyline Points="{Binding Points}" Stroke="{Binding BarBrush}" StrokeThickness="2" Margin="2" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type core:MediaPlayerSetting}">

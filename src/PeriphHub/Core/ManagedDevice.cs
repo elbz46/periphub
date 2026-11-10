@@ -134,6 +134,13 @@ public abstract class ManagedDevice : Observable, IDisposable
         Audio = new AudioControls(() => Name);
         foreach (var s in Audio.Settings) Add("Sound", s);
         EnableMiniPlayer();
+        bool lastOnline = IsOnline;
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(IsOnline) || IsOnline == lastOnline) return;
+            lastOnline = IsOnline;
+            _ = HeadsetSwitch.OnChangedAsync(this, IsOnline);
+        };
         _ = Audio.RefreshAsync();
     }
 
