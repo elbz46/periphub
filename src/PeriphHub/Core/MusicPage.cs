@@ -46,8 +46,18 @@ public sealed class MixerSetting : DeviceSetting
     private bool _empty = true;
     public bool IsEmpty { get => _empty; private set => Set(ref _empty, value); }
 
+    public bool Demo { get; set; }
+
     public async Task RefreshAsync()
     {
+        if (Demo)
+        {
+            if (Apps.Count == 0)
+                foreach (var (n, v, m) in new[] { ("Spotify", 80, false), ("Google Chrome", 45, false), ("Discord", 100, false), ("Valorant", 60, true), ("System sounds", 30, false) })
+                    Apps.Add(new AppVolume(n) { Loading = true, Volume = v, Muted = m });
+            IsEmpty = false;
+            return;
+        }
         var sessions = await Task.Run(AudioEndpoints.AppSessions);
         var d = System.Windows.Application.Current?.Dispatcher;
         void Apply()
@@ -89,8 +99,18 @@ public sealed class MusicPage : ManagedDevice
 
     public override string Glyph => "";
 
+    public bool Demo { get; set; }
+
     public override async Task OnShownAsync()
     {
+        if (Demo)
+        {
+            _mixer.Demo = true;
+            _output.Text = "Headphones (G321 Gaming Headset)";
+            _master.SetFromDevice(65);
+            await _mixer.RefreshAsync();
+            return;
+        }
         await Task.Run(() =>
         {
             _outId = AudioEndpoints.DefaultOutputId();

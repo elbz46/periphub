@@ -231,6 +231,24 @@ public sealed class MediaController : Observable
         if (d == null || d.CheckAccess()) a(); else d.Invoke(a);
     }
 
+    /// <summary>--demo: sample now-playing data for previews.</summary>
+    public void LoadDemo(BitmapImage? art)
+    {
+        _manager = null;
+        Title = "Blinding Lights"; Artist = "The Weeknd — After Hours"; AppName = "Spotify";
+        Art = art; IsPlaying = true; HasSession = true; CanSeek = true; Shuffle = true; RepeatText = "All";
+        _end = TimeSpan.FromSeconds(200); _pos = TimeSpan.FromSeconds(74); _posAt = DateTimeOffset.Now;
+        OnUiThread(() =>
+        {
+            Sources.Clear();
+            Sources.Add(new MediaSource("Spotify.exe", "Spotify"));
+            Sources.Add(new MediaSource("Chrome", "Google Chrome"));
+            _selectedSource = Sources[0]; Raise(nameof(SelectedSource));
+        });
+        RaiseTimeline();
+        _tick.Start();
+    }
+
     // ------------------------------------------------------------------ commands
     private WinMedia? Target => _session;
 

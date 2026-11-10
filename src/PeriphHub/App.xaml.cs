@@ -46,8 +46,10 @@ public partial class App : Application
         Hub.AddProvider(new LogitechProvider());
         Hub.AddProvider(new GenericProvider());
         Hub.Add(Keys);
-        Hub.Add(new MusicPage());
-        _ = MediaController.Instance.StartAsync();
+        var music = new MusicPage { Demo = e.Args.Contains("--demo") };
+        Hub.Add(music);
+        if (music.Demo) MediaController.Instance.LoadDemo(DemoArt());
+        else _ = MediaController.Instance.StartAsync();
         _ = Keys.ApplySavedAsync();
         Keys.Start();
         if (e.Args.Contains("--demo"))
@@ -65,6 +67,31 @@ public partial class App : Application
                 Dispatcher.BeginInvoke(window.ShowAndActivate);
         }) { IsBackground = true };
         listener.Start();
+    }
+
+    private static System.Windows.Media.Imaging.BitmapImage? DemoArt()
+    {
+        try
+        {
+            // Simple generated cover so previews have artwork.
+            var dv = new System.Windows.Media.DrawingVisual();
+            using (var dc = dv.RenderOpen())
+            {
+                var g = new System.Windows.Media.LinearGradientBrush(
+                    System.Windows.Media.Color.FromRgb(200, 20, 40), System.Windows.Media.Color.FromRgb(20, 10, 30), 45);
+                dc.DrawRectangle(g, null, new Rect(0, 0, 256, 256));
+                dc.DrawEllipse(null, new System.Windows.Media.Pen(System.Windows.Media.Brushes.White, 6), new Point(128, 128), 70, 70);
+            }
+            var rt = new System.Windows.Media.Imaging.RenderTargetBitmap(256, 256, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            rt.Render(dv);
+            var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rt));
+            var ms = new System.IO.MemoryStream(); enc.Save(ms); ms.Position = 0;
+            var img = new System.Windows.Media.Imaging.BitmapImage();
+            img.BeginInit(); img.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad; img.StreamSource = ms; img.EndInit(); img.Freeze();
+            return img;
+        }
+        catch { return null; }
     }
 
     public void Quit()
