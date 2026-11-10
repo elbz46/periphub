@@ -133,10 +133,17 @@ public abstract class ManagedDevice : Observable, IDisposable
         if (Audio != null) return;
         Audio = new AudioControls(() => Name);
         foreach (var s in Audio.Settings) Add("Sound", s);
+        EnableMiniPlayer();
         _ = Audio.RefreshAsync();
     }
 
     public Task RefreshAudioAsync() => Audio?.RefreshAsync() ?? Task.CompletedTask;
+
+    /// <summary>Called when the page is opened, to show fresh values.</summary>
+    public virtual Task OnShownAsync() => RefreshAudioAsync();
+
+    /// <summary>Adds the now-playing card (used on headset pages).</summary>
+    protected void EnableMiniPlayer() => Add("Sound", new MediaPlayerSetting("sound.player"));
 
     public virtual void Dispose() { }
 }

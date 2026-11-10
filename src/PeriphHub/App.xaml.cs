@@ -46,6 +46,8 @@ public partial class App : Application
         Hub.AddProvider(new LogitechProvider());
         Hub.AddProvider(new GenericProvider());
         Hub.Add(Keys);
+        Hub.Add(new MusicPage());
+        _ = MediaController.Instance.StartAsync();
         _ = Keys.ApplySavedAsync();
         Keys.Start();
         if (e.Args.Contains("--demo"))

@@ -95,7 +95,127 @@ public static class AudioEndpoints
         [PreserveSig] int SetEndpointVisibility(string id, int visible);
     }
 
+    [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionManager2
+    {
+        [PreserveSig] int GetAudioSessionControl(IntPtr guid, int flags, out IntPtr control);
+        [PreserveSig] int GetSimpleAudioVolume(IntPtr guid, int flags, out IntPtr volume);
+        [PreserveSig] int GetSessionEnumerator(out IAudioSessionEnumerator sessions);
+    }
+
+    [ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionEnumerator
+    {
+        [PreserveSig] int GetCount(out int count);
+        [PreserveSig] int GetSession(int index, out IAudioSessionControl2 session);
+    }
+
+    [ComImport, Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioSessionControl2
+    {
+        // IAudioSessionControl
+        [PreserveSig] int GetState(out int state);
+        [PreserveSig] int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string name);
+        [PreserveSig] int SetDisplayName(string name, ref Guid ctx);
+        [PreserveSig] int GetIconPath([MarshalAs(UnmanagedType.LPWStr)] out string path);
+        [PreserveSig] int SetIconPath(string path, ref Guid ctx);
+        [PreserveSig] int GetGroupingParam(out Guid param);
+        [PreserveSig] int SetGroupingParam(ref Guid param, ref Guid ctx);
+        [PreserveSig] int RegisterAudioSessionNotification(IntPtr n);
+        [PreserveSig] int UnregisterAudioSessionNotification(IntPtr n);
+        // IAudioSessionControl2
+        [PreserveSig] int GetSessionIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
+        [PreserveSig] int GetSessionInstanceIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string id);
+        [PreserveSig] int GetProcessId(out uint pid);
+        [PreserveSig] int IsSystemSoundsSession();
+    }
+
+    [ComImport, Guid("87CE5498-68D6-44E5-9215-6F4BA0F9C8B2"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface ISimpleAudioVolume
+    {
+        [PreserveSig] int SetMasterVolume(float level, ref Guid ctx);
+        [PreserveSig] int GetMasterVolume(out float level);
+        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid ctx);
+        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
+    }
+
     [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PROPVARIANT pv);
+
+    public static string? DefaultOutputId()
+    {
+        try { return Enumerator().GetDefaultAudioEndpoint(EDataFlow.Render, ERole.Multimedia, out var d) == 0 && d.GetId(out var id) == 0 ? id : null; }
+        catch { return null; }
+    }
+
+    public sealed record AppSession(string Name, int Volume, bool Muted, int Pid);
+
+    /// <summary>Apps currently using the default speaker / headset, grouped by program.</summary>
+    public static List<AppSession> AppSessions()
+    {
+        var result = new Dictionary<string, AppSession>();
+        foreach (var (name, vol, pid) in Sessions())
+        {
+            vol.GetMasterVolume(out var level);
+            vol.GetMute(out var muted);
+            result.TryAdd(name, new AppSession(name, (int)Math.Round(level * 100), muted, pid));
+        }
+        return result.Values.OrderBy(a => a.Name == "System sounds" ? 1 : 0).ThenBy(a => a.Name).ToList();
+    }
+
+    public static void SetAppVolume(string name, int percent)
+    {
+        var ctx = Guid.Empty;
+        foreach (var (n, vol, _) in Sessions()) if (n == name) vol.SetMasterVolume(Math.Clamp(percent, 0, 100) / 100f, ref ctx);
+    }
+
+    public static void SetAppMute(string name, bool mute)
+    {
+        var ctx = Guid.Empty;
+        foreach (var (n, vol, _) in Sessions()) if (n == name) vol.SetMute(mute, ref ctx);
+    }
+
+    private static IEnumerable<(string name, ISimpleAudioVolume vol, int pid)> Sessions()
+    {
+        var list = new List<(string, ISimpleAudioVolume, int)>();
+        try
+        {
+            if (Enumerator().GetDefaultAudioEndpoint(EDataFlow.Render, ERole.Multimedia, out var dev) != 0) return list;
+            var iid = typeof(IAudioSessionManager2).GUID;
+            if (dev.Activate(ref iid, CLSCTX_ALL, IntPtr.Zero, out var o) != 0) return list;
+            var mgr = (IAudioSessionManager2)o;
+            if (mgr.GetSessionEnumerator(out var en) != 0) return list;
+            en.GetCount(out var count);
+            for (int i = 0; i < count; i++)
+            {
+                if (en.GetSession(i, out var ctl) != 0) continue;
+                ctl.GetState(out var state);
+                if (state == 2) continue; // expired
+                ctl.GetProcessId(out var pid);
+                string name;
+                if (ctl.IsSystemSoundsSession() == 0) name = "System sounds";
+                else name = ProcessLabel((int)pid);
+                list.Add((name, (ISimpleAudioVolume)ctl, (int)pid));
+            }
+        }
+        catch (Exception ex) { Log.Warn($"Volume mixer failed: {ex.Message}"); }
+        return list;
+    }
+
+    private static string ProcessLabel(int pid)
+    {
+        try
+        {
+            using var p = System.Diagnostics.Process.GetProcessById(pid);
+            try
+            {
+                var desc = p.MainModule?.FileVersionInfo.FileDescription;
+                if (!string.IsNullOrWhiteSpace(desc)) return desc.Trim();
+            }
+            catch { /* access denied for some processes */ }
+            return p.ProcessName;
+        }
+        catch { return $"Process {pid}"; }
+    }
 
     private static readonly Guid VolumeIid = typeof(IAudioEndpointVolume).GUID;
     private static PROPERTYKEY FriendlyName = new() { fmtid = new Guid("a45c254e-df1c-4efd-8020-67d146a850e0"), pid = 14 };

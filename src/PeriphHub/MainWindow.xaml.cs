@@ -20,7 +20,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         set
         {
             _selected = value;
-            _ = value?.RefreshAudioAsync();
+            _ = value?.OnShownAsync();
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
             PageScroller?.ScrollToTop();
             if (EmptyText != null)
@@ -85,6 +85,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     private void OnRescan(object sender, RoutedEventArgs e) => App.Hub.QueueRescan(50);
+
+    private async void OnMedia(object sender, RoutedEventArgs e)
+    {
+        var m = MediaController.Instance;
+        try
+        {
+            switch ((sender as FrameworkElement)?.Tag as string)
+            {
+                case "toggle": await m.PlayPauseAsync(); break;
+                case "next": await m.NextAsync(); break;
+                case "prev": await m.PreviousAsync(); break;
+                case "shuffle": await m.ToggleShuffleAsync(); break;
+                case "repeat": await m.CycleRepeatAsync(); break;
+            }
+        }
+        catch (Exception ex) { Log.Warn($"Media control failed: {ex.Message}"); }
+    }
 
     private async void OnCommand(object sender, RoutedEventArgs e)
     {

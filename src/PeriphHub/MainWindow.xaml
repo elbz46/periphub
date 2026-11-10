@@ -148,6 +148,82 @@
             </StackPanel>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type core:MediaPlayerSetting}">
+            <StackPanel Margin="0,10">
+                <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" Margin="0,0,0,10"
+                           Visibility="{Binding Description, Converter={StaticResource NotEmpty}}" />
+                <Grid DataContext="{Binding Player}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="124" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Border Width="116" Height="116" CornerRadius="8" VerticalAlignment="Top" ClipToBounds="True"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <Grid>
+                            <TextBlock Text="&#xE8D6;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="40" Opacity="0.5"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image Source="{Binding Art}" Stretch="UniformToFill" Visibility="{Binding HasArt, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="18,0,0,0">
+                        <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Artist}" Opacity="0.75" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                        <DockPanel Margin="0,8,0,0">
+                            <TextBlock Text="Controlling" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,8,0" />
+                            <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" DisplayMemberPath="Name"
+                                      MinWidth="180" HorizontalAlignment="Left" IsEnabled="{Binding HasSession}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,10,0,0" IsEnabled="{Binding CanSeek}">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding PositionText}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                       FontSize="12" Opacity="0.75" />
+                            <Slider Minimum="0" Maximum="{Binding DurationSeconds}" Value="{Binding PositionSeconds}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <StackPanel.Resources>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                                    <Setter Property="FontSize" Value="16" />
+                                    <Setter Property="Width" Value="44" />
+                                    <Setter Property="Height" Value="38" />
+                                    <Setter Property="Margin" Value="0,0,6,0" />
+                                    <Setter Property="Padding" Value="0" />
+                                </Style>
+                            </StackPanel.Resources>
+                            <Button Content="&#xE8B1;" Tag="shuffle" Click="OnMedia" ToolTip="Shuffle" />
+                            <Button Content="&#xE892;" Tag="prev" Click="OnMedia" ToolTip="Previous" />
+                            <Button Content="{Binding PlayGlyph}" Tag="toggle" Click="OnMedia" ToolTip="Play / Pause" Width="56" FontSize="20" />
+                            <Button Content="&#xE893;" Tag="next" Click="OnMedia" ToolTip="Next" />
+                            <Button Content="&#xE8EE;" Tag="repeat" Click="OnMedia" ToolTip="Repeat" />
+                            <TextBlock VerticalAlignment="Center" FontSize="12" Opacity="0.7" Margin="6,0,0,0">
+                                <Run Text="Shuffle " /><Run Text="{Binding Shuffle, Mode=OneWay, Converter={x:Static ui:OnOff.Instance}}" />
+                                <Run Text="  ·  Repeat " /><Run Text="{Binding RepeatText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type core:MixerSetting}">
+            <StackPanel Margin="0,8">
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SettingLabel}" />
+                <TextBlock Text="No apps are playing sound right now." Opacity="0.7" Margin="0,8,0,0"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+                <ItemsControl ItemsSource="{Binding Apps}" Margin="0,6,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type core:AppVolume}">
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="230" /><ColumnDefinition /><ColumnDefinition Width="56" /><ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Volume}" VerticalAlignment="Center" Margin="10,0" />
+                                <TextBlock Grid.Column="2" Text="{Binding Volume, StringFormat={}{0}%}" VerticalAlignment="Center" TextAlignment="Right" />
+                                <CheckBox Grid.Column="3" IsChecked="{Binding Muted}" Content="Mute" Margin="14,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type core:ButtonMapSetting}">
             <StackPanel Margin="0,8">
                 <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource SettingLabel}" />

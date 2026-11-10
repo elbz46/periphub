@@ -20,6 +20,10 @@ public sealed class TrayIcon : IDisposable
         };
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open PeriphHub", null, (_, _) => _window.ShowAndActivate());
+        menu.Items.Add("Play / Pause", null, (_, _) => _ = MediaController.Instance.PlayPauseAsync());
+        menu.Items.Add("Next track", null, (_, _) => _ = MediaController.Instance.NextAsync());
+        menu.Items.Add("Previous track", null, (_, _) => _ = MediaController.Instance.PreviousAsync());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Rescan devices", null, (_, _) => App.Hub.QueueRescan(100));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ((App)System.Windows.Application.Current).Quit());
