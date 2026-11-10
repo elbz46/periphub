@@ -27,6 +27,9 @@ jobs:
           dotnet-version: "10.0.x"
       - name: Install NSIS
         run: sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+      - name: Read version
+        id: version
+        run: echo "version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/PeriphHub/PeriphHub.csproj)" >> "$GITHUB_OUTPUT"
       - name: Build app and installer
         run: ./build.sh
       - name: Upload installer
@@ -35,8 +38,21 @@ jobs:
           name: PeriphHub-Setup
           path: out/installer/*.exe
           if-no-files-found: error
+      # Every push to main publishes (or refreshes) the release for the version in PeriphHub.csproj.
+      # Bump <Version> to publish a new release; friends always get it from releases/latest.
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: PeriphHub ${{ steps.version.outputs.version }}
+          make_latest: "true"
           files: out/installer/*.exe
+          body: |
+            **Download `PeriphHub-Setup-${{ steps.version.outputs.version }}.exe` below and run it.**
+
+            - Windows 10/11, 64-bit. Nothing else to install.
+            - Windows SmartScreen may say “Windows protected your PC” because the installer is not
+              code-signed yet: click **More info → Run anyway**.
+            - Close Logitech Options+ / G HUB / Armoury Crate while using PeriphHub.
